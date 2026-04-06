@@ -3,195 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhysiCode Lab - 物理求解器演示（可交互）</title>
+    <title>PhysiCode Lab</title>
     <style>
-        body { font-family: monospace; margin: 20px; background: #f0f0f0; }
-        canvas { border: 2px solid #333; background: white; display: block; margin: 10px auto; box-shadow: 2px 2px 8px rgba(0,0,0,0.2); }
-        .controls, .settings { text-align: center; margin: 10px; }
-        button { margin: 0 8px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
-        .settings input { width: 60px; margin: 0 5px; }
-        pre { background: #eee; padding: 10px; overflow: auto; max-height: 200px; width: 800px; margin: 10px auto; font-size: 12px; }
-        h1, h3 { text-align: center; }
-        .settings { background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 10px; width: fit-content; margin: 10px auto; }
-    </style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: #e9ecef;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1, h3 {
+            text-align: center;
+            color: #1e466e;
+        }
+        canvas {
+            border: 2px solid #2c3e50;
+            background: #fefefe;
+            display: block;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        button {
+            background: #2c3e50;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #1e466e;
+            transform: scale(1.02);
+        }
+        .config-panel {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .config-group {
+            flex: 1;
+            min-width: 180px;
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .config-group h4 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+            padding-left: 8px;
+        }
+        .config-group label {
+            display: inline-block;
+            width: 50px;
+            font-weight: bold;
+        }
+        .config-group input {
+            width: 90px;
+            padding: 4px;
+            margin: 4px 8px 4px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 12px;
+            overflow: auto;
+            max-height: 200px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .status {
+            text-align: center;
+            color: green;
+            margin: 5px;
+        }
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+     </style>
 </head>
 <body>
-    <h1>PhysiCode Solver WebAssembly 演示</h1>
-    <div class="controls">
-        <button id="stepBtn">单步仿真 (dt=0.02)</button>
+<div class="container">
+    <h1>⚛️ PhysiCode Lab 物理求解器（彩色粒子）</h1>
+    <div class="toolbar">
+        <button id="stepBtn">单步 (dt=0.02)</button>
         <button id="startBtn">开始动画</button>
         <button id="stopBtn">停止</button>
-        <button id="exportBtn">导出数据 (CSV)</button>
+        <button id="exportBtn">导出 CSV</button>
     </div>
-    <div class="settings">
-        <h3>添加新粒子</h3>
-        <label>X: <input type="number" id="px" value="0" step="0.5"></label>
-        <label>Y: <input type="number" id="py" value="5" step="0.5"></label>
-        <label>质量: <input type="number" id="pmass" value="1.0" step="0.1" min="0.1"></label>
-        <label>半径: <input type="number" id="prad" value="0.3" step="0.05" min="0.05"></label>
-        <button id="addParticleBtn">➕ 添加粒子</button>
-        <button id="resetWorldBtn">🔄 重置世界（清空所有粒子）</button>
+
+    <div class="config-panel">
+        <div class="config-group">
+            <h4>初始位置</h4>
+            <label>X:</label> <input type="number" id="posX" value="0" step="0.5"><br>
+            <label>Y:</label> <input type="number" id="posY" value="5" step="0.5"><br>
+            <label>Z:</label> <input type="number" id="posZ" value="0" step="0.5">
+        </div>
+        <div class="config-group">
+            <h4>初始速度</h4>
+            <label>Vx:</label> <input type="number" id="velX" value="0" step="1"><br>
+            <label>Vy:</label> <input type="number" id="velY" value="0" step="1"><br>
+            <label>Vz:</label> <input type="number" id="velZ" value="0" step="1">
+        </div>
+        <div class="config-group">
+            <h4>物理属性</h4>
+            <label>质量:</label> <input type="number" id="mass" value="1.0" step="0.1" min="0.1"><br>
+            <label>半径:</label> <input type="number" id="radius" value="0.3" step="0.05" min="0.05"><br>
+            <label>弹性系数:</label>
+            <input type="range" id="restitution" min="0" max="1" step="0.01" value="0.9">
+            <span id="restitutionValue">0.90</span>
+        </div>
+        <div class="config-group">
+            <h4>操作</h4>
+            <div class="action-buttons">
+                <button id="addParticleBtn" style="background:#27ae60;">➕ 添加粒子</button>
+                <button id="resetWorldBtn" style="background:#e67e22;">🗑️ 重置世界</button>
+                <button id="addExamplesBtn" style="background:#3498db;">📦 添加示例粒子</button>
+            </div>
+        </div>
     </div>
-    <canvas id="canvas" width="800" height="500"></canvas>
-    <h3>控制台输出</h3>
+
+    <canvas id="canvas" width="900" height="550"></canvas>
+    <h3>日志</h3>
     <pre id="log"></pre>
+    <footer>粒子颜色循环变化。半径视觉缩放已优化（实际物理半径不变）。弹性系数越高碰撞越弹。</footer>
+</div>
 
-    <script src="PhysiCodeSolver_WASM.js"></script>
-    <script>
-        let moduleInstance = null;
-        let worldPtr = null;
-        let animationId = null;
-        let running = false;
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+<script src="PhysiCodeSolver_WASM.js"></script>
+<script>
+    let moduleInstance = null, worldPtr = null, animationId = null, running = false;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-        // 坐标变换：物理世界 Y 轴向上，Canvas Y 轴向下
-        function worldToCanvas(x, y) {
-            const cx = x + canvas.width/2;
-            const cy = canvas.height - (y + 100); // 偏移地面显示
-            return { x: cx, y: cy };
-        }
+    // 颜色列表（循环使用）
+    const PARTICLE_COLORS = [
+        '#3399ff', '#ff3333', '#33ff33', '#ffcc00', 
+        '#ff66cc', '#66ccff', '#ff9933', '#99ff99',
+        '#aa66ff', '#ff6699'
+    ];
 
-        // 绘制所有粒子
-        function drawScene() {
-            if (!worldPtr) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 绘制地面示意线（y = 0 平面）
+    function worldToCanvas(x, y) {
+        return { x: x + canvas.width/2, y: canvas.height - (y + 100) };
+    }
+
+    function drawScene() {
+        if (!worldPtr) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 地面线
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - 100);
+        ctx.lineTo(canvas.width, canvas.height - 100);
+        ctx.strokeStyle = '#aaa';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const data = worldPtr.getParticlesData();
+        for (let i = 0; i < data.length; i += 4) {
+            const px = data[i], py = data[i+1], r = data[i+3];
+            const { x: cx, y: cy } = worldToCanvas(px, py);
             ctx.beginPath();
-            ctx.moveTo(0, canvas.height - 100);
-            ctx.lineTo(canvas.width, canvas.height - 100);
-            ctx.strokeStyle = '#888';
+            // 调整半径绘制比例：原为 r*20，现改为 r*6，使 r=1 时视觉大小相当于之前 r=0.3
+            const visualRadius = Math.max(2, r * 6);
+            ctx.arc(cx, cy, visualRadius, 0, 2 * Math.PI);
+            const colorIndex = (i / 4) % PARTICLE_COLORS.length;
+            ctx.fillStyle = PARTICLE_COLORS[colorIndex];
+            ctx.fill();
+            ctx.strokeStyle = '#003366';
             ctx.stroke();
-
-            // 获取粒子数据
-            const particlesData = worldPtr.getParticlesData();
-            // particlesData 是 [x1,y1,z1,r1, x2,y2,z2,r2, ...]
-            for (let i = 0; i < particlesData.length; i += 4) {
-                const px = particlesData[i];
-                const py = particlesData[i+1];
-                const radius = particlesData[i+3];
-                const { x: cx, y: cy } = worldToCanvas(px, py);
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius * 20, 0, 2 * Math.PI);
-                ctx.fillStyle = '#3399ff';
-                ctx.fill();
-                ctx.strokeStyle = '#003366';
-                ctx.stroke();
-            }
         }
+    }
 
-        function log(msg) {
-            const pre = document.getElementById('log');
-            pre.textContent += msg + '\n';
-            pre.scrollTop = pre.scrollHeight;
-            console.log(msg);
+    function log(msg) {
+        const pre = document.getElementById('log');
+        pre.textContent += msg + '\n';
+        pre.scrollTop = pre.scrollHeight;
+        console.log(msg);
+    }
+
+    function createEmptyWorld() {
+        const world = new moduleInstance.World();
+        world.setGravity(new moduleInstance.Vec3(0, -9.8, 0));
+        world.addPlane(new moduleInstance.Vec3(0, 1, 0), 0.0);
+        return world;
+    }
+
+    function resetWorld() {
+        if (worldPtr) worldPtr.delete();
+        worldPtr = createEmptyWorld();
+        log("✅ 世界已重置（所有粒子已清除）");
+        drawScene();
+    }
+
+    function addExampleParticles() {
+        if (!worldPtr) return;
+        const rest = 0.5;
+        worldPtr.addParticleFull(0, 400, 0, 0, 0, 0, 1.0, 1, rest);
+        worldPtr.addParticleFull(-350, 400, 0, 50, 0, 0, 4.0, 1, rest);
+        worldPtr.addParticleFull(348, 200, 0, 0, 0, 0, 6.0, 1, 1.0);
+        log("✨ 添加了三个示例粒子（弹性系数=0.5）");
+        drawScene();
+    }
+
+    function addParticleFromUI() {
+        if (!worldPtr) { log("世界未初始化"); return; }
+        const px = parseFloat(document.getElementById('posX').value);
+        const py = parseFloat(document.getElementById('posY').value);
+        const pz = parseFloat(document.getElementById('posZ').value);
+        const vx = parseFloat(document.getElementById('velX').value);
+        const vy = parseFloat(document.getElementById('velY').value);
+        const vz = parseFloat(document.getElementById('velZ').value);
+        const mass = parseFloat(document.getElementById('mass').value);
+        const radius = parseFloat(document.getElementById('radius').value);
+        const restitution = parseFloat(document.getElementById('restitution').value);
+        if (isNaN(px+py+pz+vx+vy+vz+mass+radius+restitution) || mass<=0 || radius<=0) {
+            log("❌ 参数无效"); return;
         }
+        worldPtr.addParticleFull(px, py, pz, vx, vy, vz, mass, radius, restitution);
+        log(`➕ 添加粒子: pos(${px},${py},${pz}) vel(${vx},${vy},${vz}) e=${restitution}`);
+        drawScene();
+    }
 
-        // 初始化世界（重力 + 地面）
-        function initWorld() {
-            if (!moduleInstance) throw new Error("模块未加载");
-            const world = new moduleInstance.World();
-            const gravity = new moduleInstance.Vec3(0, -9.8, 0);
-            world.setGravity(gravity);
-            const normal = new moduleInstance.Vec3(0, 1, 0);
-            world.addPlane(normal, 0.0);
-            return world;
-        }
+    function step(dt=0.02) { if(worldPtr) { worldPtr.step(dt); drawScene(); } }
+    function exportData() {
+        if(!worldPtr) return;
+        const csv = worldPtr.exportData();
+        const blob = new Blob([csv], {type:"text/csv"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `physicode_${Date.now()}.csv`;
+        a.click(); URL.revokeObjectURL(a.href);
+        log("📄 导出 CSV");
+    }
+    function animate() { if(running) { step(0.02); requestAnimationFrame(animate); } }
 
-        // 重置世界：删除旧世界，新建一个，并可选添加默认粒子
-        function resetWorld(addDefaultParticles = true) {
-            if (worldPtr) {
-                worldPtr.delete();  // 释放 C++ 对象
-            }
-            worldPtr = initWorld();
-            if (addDefaultParticles) {
-                // 添加三个默认粒子，与初始演示一致
-                worldPtr.addParticle(0, 5, 0, 1.0, 0.3);
-                worldPtr.addParticle(-2, 4, 0, 1.0, 0.25);
-                worldPtr.addParticle(2, 6, 0, 1.0, 0.2);
-                log("重置世界，添加了三个默认粒子");
-            } else {
-                log("世界已重置，无粒子");
-            }
-            drawScene();
-        }
+    // 绑定事件
+    document.getElementById('stepBtn').onclick = () => step();
+    document.getElementById('startBtn').onclick = () => { if(!running){ running=true; animate(); log("▶️ 开始动画"); } };
+    document.getElementById('stopBtn').onclick = () => { running=false; if(animationId) cancelAnimationFrame(animationId); log("⏸️ 停止"); };
+    document.getElementById('exportBtn').onclick = exportData;
+    document.getElementById('addParticleBtn').onclick = addParticleFromUI;
+    document.getElementById('resetWorldBtn').onclick = resetWorld;
+    document.getElementById('addExamplesBtn').onclick = addExampleParticles;
 
-        async function init() {
-            log("正在加载 WASM 模块...");
-            const ModuleFactory = window.PhysiCodeSolverModule;
-            moduleInstance = await ModuleFactory();
-            log("WASM 模块加载完成");
+    const restSlider = document.getElementById('restitution');
+    const restSpan = document.getElementById('restitutionValue');
+    restSlider.oninput = () => { restSpan.textContent = restSlider.value; };
 
-            resetWorld(true);  // 创建世界并添加默认粒子
-            log("World 对象创建成功，设置重力 (0, -9.8, 0)，添加地面平面 (y=0)");
-        }
-
-        // 添加粒子（从 UI 读取参数）
-        function addParticleFromUI() {
-            if (!worldPtr) {
-                log("错误：世界未初始化");
-                return;
-            }
-            const x = parseFloat(document.getElementById('px').value);
-            const y = parseFloat(document.getElementById('py').value);
-            const mass = parseFloat(document.getElementById('pmass').value);
-            const radius = parseFloat(document.getElementById('prad').value);
-            if (isNaN(x) || isNaN(y) || isNaN(mass) || isNaN(radius) || mass <= 0 || radius <= 0) {
-                log("参数无效，请检查输入（质量、半径需为正数）");
-                return;
-            }
-            worldPtr.addParticle(x, y, 0, mass, radius);
-            log(`添加粒子 at (${x}, ${y}), 质量=${mass}, 半径=${radius}`);
-            drawScene();  // 立即刷新显示
-        }
-
-        function step(dt = 0.02) {
-            if (!worldPtr) return;
-            worldPtr.step(dt);
-            drawScene();
-            log(`step dt=${dt}`);
-        }
-
-        function exportData() {
-            if (!worldPtr) return;
-            const csvStr = worldPtr.exportData();
-            const blob = new Blob([csvStr], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `physics_export_${Date.now()}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            log("数据已导出为 CSV 文件");
-        }
-
-        function animate() {
-            if (!running) return;
-            step(0.02);
-            requestAnimationFrame(animate);
-        }
-
-        // 绑定 UI 事件
-        document.getElementById('stepBtn').onclick = () => step(0.02);
-        document.getElementById('startBtn').onclick = () => {
-            if (running) return;
-            running = true;
-            animate();
-            log("开始连续仿真");
-        };
-        document.getElementById('stopBtn').onclick = () => {
-            running = false;
-            if (animationId) cancelAnimationFrame(animationId);
-            log("停止仿真");
-        };
-        document.getElementById('exportBtn').onclick = exportData;
-        document.getElementById('addParticleBtn').onclick = addParticleFromUI;
-        document.getElementById('resetWorldBtn').onclick = () => resetWorld(true);
-
-        init().catch(err => log("初始化失败: " + err));
-    </script>
+    // 初始化
+    (async () => {
+        log("加载 WASM...");
+        const ModuleFactory = window.PhysiCodeSolverModule;
+        moduleInstance = await ModuleFactory();
+        worldPtr = createEmptyWorld();
+        log("初始化完成，重力(0,-9.8,0)，地面 y=0");
+        drawScene();
+    })().catch(e => log("初始化失败: "+e));
+</script>
 </body>
 </html>
