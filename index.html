@@ -2,140 +2,104 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhysiCode Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PhysiCode Lab - 三维物理仿真（无闪烁稳定版）</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            background: #e9ecef;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 30, 40, 0.85);
+            backdrop-filter: blur(8px);
             border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 20px;
+            padding: 15px;
+            color: white;
+            width: 360px;
+            pointer-events: auto;
+            z-index: 20;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        h1, h3 {
-            text-align: center;
-            color: #1e466e;
-        }
-        canvas {
-            border: 2px solid #2c3e50;
-            background: #fefefe;
-            display: block;
-            margin: 20px auto;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
-        }
+        .toolbar { text-align: center; margin-bottom: 10px; }
         button {
             background: #2c3e50;
             border: none;
             color: white;
-            padding: 8px 16px;
-            border-radius: 24px;
+            padding: 6px 12px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
+            margin: 0 5px;
             transition: 0.2s;
         }
-        button:hover {
-            background: #1e466e;
-            transform: scale(1.02);
-        }
+        button:hover { background: #1e466e; transform: scale(1.02); }
         .config-panel {
-            background: #f8f9fa;
-            border-radius: 16px;
-            padding: 16px;
-            margin: 20px 0;
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 20px;
-        }
-        .config-group {
-            flex: 1;
-            min-width: 180px;
-            background: white;
-            border-radius: 12px;
-            padding: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .config-group h4 {
-            margin-top: 0;
-            margin-bottom: 12px;
-            color: #2c3e50;
-            border-left: 4px solid #3498db;
-            padding-left: 8px;
-        }
-        .config-group label {
-            display: inline-block;
-            width: 50px;
-            font-weight: bold;
-        }
-        .config-group input {
-            width: 90px;
-            padding: 4px;
-            margin: 4px 8px 4px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
-        .action-buttons {
-            display: flex;
             gap: 12px;
-            justify-content: center;
             margin-top: 10px;
         }
-        pre {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 12px;
+        .config-group {
+            background: rgba(0,0,0,0.5);
             border-radius: 12px;
-            overflow: auto;
-            max-height: 200px;
-            font-size: 12px;
+            padding: 8px 12px;
+            flex: 1;
+            min-width: 130px;
+        }
+        .config-group h4 { margin: 0 0 8px 0; font-size: 14px; border-left: 3px solid #3498db; padding-left: 6px; }
+        .config-group label { display: inline-block; width: 45px; font-size: 12px; }
+        .config-group input { width: 80px; padding: 4px; margin: 2px; border-radius: 6px; border: none; }
+        input[type="range"] { width: 120px; vertical-align: middle; }
+        .action-buttons { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+        footer { font-size: 11px; text-align: center; margin-top: 12px; opacity: 0.7; }
+        pre { background: rgba(0,0,0,0.6); color: #0f0; padding: 6px; border-radius: 8px; font-size: 11px; max-height: 200px; overflow: auto; margin-top: 10px; white-space: pre-wrap; word-break: break-all; }
+        .error-log { color: #ff8888; }
+        #scale-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
             font-family: monospace;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 20;
+            backdrop-filter: blur(4px);
+            border-left: 3px solid #ffaa33;
         }
-        .status {
-            text-align: center;
-            color: green;
-            margin: 5px;
+
+        /* ========== 修复标签闪烁核心样式 ========== */
+        .axis-label {
+            position: absolute;
+            transform-origin: center center;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            will-change: transform;
+            pointer-events: none;
+            text-shadow: 0 0 1px rgba(0,0,0,0.2);
         }
-        footer {
-            text-align: center;
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 20px;
-        }
-     </style>
+    </style>
 </head>
 <body>
-<div class="container">
-    <h1>⚛️ PhysiCode Lab 物理求解器（彩色粒子）</h1>
+<div id="ui">
     <div class="toolbar">
-        <button id="stepBtn">单步 (dt=0.02)</button>
-        <button id="startBtn">开始动画</button>
-        <button id="stopBtn">停止</button>
-        <button id="exportBtn">导出 CSV</button>
+        <button id="stepBtn" disabled>▶️ 单步</button>
+        <button id="startBtn" disabled>🎬 开始</button>
+        <button id="stopBtn" disabled>⏹️ 停止</button>
+        <button id="exportBtn" disabled>📥 导出CSV</button>
+        <button id="resetCameraBtn" disabled style="background:#ffaa33; color:#333;">🎥 重置相机</button>
     </div>
-
     <div class="config-panel">
         <div class="config-group">
             <h4>初始位置</h4>
             <label>X:</label> <input type="number" id="posX" value="0" step="0.5"><br>
-            <label>Y:</label> <input type="number" id="posY" value="5" step="0.5"><br>
-            <label>Z:</label> <input type="number" id="posZ" value="0" step="0.5">
+            <label>Y:</label> <input type="number" id="posY" value="0" step="0.5"><br>
+            <label>Z:</label> <input type="number" id="posZ" value="5" step="0.5">
         </div>
         <div class="config-group">
             <h4>初始速度</h4>
@@ -147,155 +111,325 @@
             <h4>物理属性</h4>
             <label>质量:</label> <input type="number" id="mass" value="1.0" step="0.1" min="0.1"><br>
             <label>半径:</label> <input type="number" id="radius" value="0.3" step="0.05" min="0.05"><br>
-            <label>弹性系数:</label>
+            <label>弹性:</label>
             <input type="range" id="restitution" min="0" max="1" step="0.01" value="0.9">
             <span id="restitutionValue">0.90</span>
         </div>
         <div class="config-group">
+            <h4>显示</h4>
+            <label>视觉缩放:</label>
+            <input type="range" id="visualScale" min="0.5" max="15" step="0.5" value="6">
+            <span id="visualScaleValue">6.0</span><br>
+            <small style="font-size:10px;">仅影响视觉大小</small>
+        </div>
+        <div class="config-group">
             <h4>操作</h4>
             <div class="action-buttons">
-                <button id="addParticleBtn" style="background:#27ae60;">➕ 添加粒子</button>
-                <button id="resetWorldBtn" style="background:#e67e22;">🗑️ 重置世界</button>
-                <button id="addExamplesBtn" style="background:#3498db;">📦 添加示例粒子</button>
+                <button id="addParticleBtn" disabled style="background:#27ae60;">➕ 添加</button>
+                <button id="resetWorldBtn" disabled style="background:#e67e22;">🗑️ 重置</button>
+                <button id="addExamplesBtn" disabled style="background:#3498db;">📦 示例</button>
             </div>
         </div>
     </div>
-
-    <canvas id="canvas" width="900" height="550"></canvas>
-    <h3>日志</h3>
-    <pre id="log"></pre>
-    <footer>粒子颜色循环变化。半径视觉缩放已优化（实际物理半径不变）。弹性系数越高碰撞越弹。</footer>
+    <pre id="log">初始化中...</pre>
+    <footer>左键旋转 | 右键平移 | 滚轮缩放 | Z轴向上 | 无闪烁坐标轴</footer>
+</div>
+<div id="scale-info">
+    📐 网格间距 = 1 米/格
 </div>
 
-<script src="PhysiCodeSolver_WASM.js"></script>
-<script>
-    let moduleInstance = null, worldPtr = null, animationId = null, running = false;
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // 颜色列表（循环使用）
-    const PARTICLE_COLORS = [
-        '#3399ff', '#ff3333', '#33ff33', '#ffcc00', 
-        '#ff66cc', '#66ccff', '#ff9933', '#99ff99',
-        '#aa66ff', '#ff6699'
-    ];
-
-    function worldToCanvas(x, y) {
-        return { x: x + canvas.width/2, y: canvas.height - (y + 100) };
-    }
-
-    function drawScene() {
-        if (!worldPtr) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // 地面线
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height - 100);
-        ctx.lineTo(canvas.width, canvas.height - 100);
-        ctx.strokeStyle = '#aaa';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        const data = worldPtr.getParticlesData();
-        for (let i = 0; i < data.length; i += 4) {
-            const px = data[i], py = data[i+1], r = data[i+3];
-            const { x: cx, y: cy } = worldToCanvas(px, py);
-            ctx.beginPath();
-            // 调整半径绘制比例：原为 r*20，现改为 r*6，使 r=1 时视觉大小相当于之前 r=0.3
-            const visualRadius = Math.max(2, r * 6);
-            ctx.arc(cx, cy, visualRadius, 0, 2 * Math.PI);
-            const colorIndex = (i / 4) % PARTICLE_COLORS.length;
-            ctx.fillStyle = PARTICLE_COLORS[colorIndex];
-            ctx.fill();
-            ctx.strokeStyle = '#003366';
-            ctx.stroke();
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
         }
     }
+</script>
+<script src="PhysiCodeSolver_WASM.js"></script>
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    function log(msg) {
-        const pre = document.getElementById('log');
-        pre.textContent += msg + '\n';
-        pre.scrollTop = pre.scrollHeight;
+    // ---------- 日志系统 ----------
+    const logPre = document.getElementById('log');
+    function logMessage(msg, isError = false) {
+        const line = document.createElement('div');
+        line.textContent = msg;
+        if (isError) line.style.color = '#ff8888';
+        logPre.appendChild(line);
+        logPre.scrollTop = logPre.scrollHeight;
         console.log(msg);
     }
+    function clearLog() { logPre.innerHTML = ''; }
+
+    function setButtonsEnabled(enabled) {
+        const btns = ['stepBtn','startBtn','stopBtn','exportBtn','resetCameraBtn','addParticleBtn','resetWorldBtn','addExamplesBtn'];
+        btns.forEach(id => { document.getElementById(id).disabled = !enabled; });
+    }
+
+    // ---------- Three.js 初始化 ----------
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const initialCameraPos = { x: 12, y: 8, z: 10 };
+    camera.position.set(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z);
+    camera.lookAt(0, 0, 0);
+    camera.up.set(0, 0, 1);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0xffffff, 1);
+    document.body.appendChild(renderer.domElement);
+
+    // ========== 超稳定相机控制（无抖动） ==========
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.screenSpacePanning = false;
+    controls.enablePan = true;
+    controls.minPolarAngle = 0.35;
+    controls.maxPolarAngle = Math.PI - 0.35;
+    controls.minDistance = 3;
+    controls.maxDistance = 80;
+    controls.rotateSpeed = 0.6;
+    controls.zoomSpeed = 0.8;
+    controls.panSpeed = 0.6;
+    controls.update();
+
+    // ========== 仅保留 XOY 平面网格 ==========
+    const gridSize = 100;
+    const divisions = 100;
+    const step = gridSize / divisions;
+    const half = gridSize / 2;
+    const lineColor = 0x88aaff;
+
+    const vertices = [];
+    for (let i = 0; i <= divisions; i++) {
+        const x = -half + i * step;
+        vertices.push(x, -half, 0);
+        vertices.push(x, half, 0);
+        vertices.push(-half, x, 0);
+        vertices.push(half, x, 0);
+    }
+    const gridGeo = new THREE.BufferGeometry();
+    gridGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+    const gridMat = new THREE.LineBasicMaterial({ color: lineColor });
+    const grid = new THREE.LineSegments(gridGeo, gridMat);
+    scene.add(grid);
+
+    // 坐标轴
+    const axesHelper = new THREE.AxesHelper(60);
+    scene.add(axesHelper);
+
+    // ========== 静态DOM标签（彻底消除闪烁） ==========
+    const labelX = createStaticLabel('X', '#ff3333');
+    const labelY = createStaticLabel('Y', '#33ff33');
+    const labelZ = createStaticLabel('Z', '#3399ff');
+    const labelO = createStaticLabel('原点', '#666666');
+
+    function createStaticLabel(text, color) {
+        const div = document.createElement('div');
+        div.className = 'axis-label';
+        div.textContent = text;
+        div.style.color = color;
+        div.style.fontSize = '18px';
+        div.style.fontWeight = 'bold';
+        div.style.background = 'rgba(255,255,240,0.75)';
+        div.style.padding = '2px 6px';
+        div.style.borderRadius = '4px';
+        div.style.border = `1px solid ${color}`;
+        document.body.appendChild(div);
+        return div;
+    }
+
+    // 实时计算标签位置（超平滑）
+    function updateStaticLabels() {
+        updateLabelPos(labelX, new THREE.Vector3(62, 0, 0));
+        updateLabelPos(labelY, new THREE.Vector3(0, 62, 0));
+        updateLabelPos(labelZ, new THREE.Vector3(0, 0, 62));
+        updateLabelPos(labelO, new THREE.Vector3(0, -0.8, 0));
+    }
+
+    const tempVec = new THREE.Vector3();
+    function updateLabelPos(label, worldPos) {
+        tempVec.copy(worldPos);
+        tempVec.project(camera);
+        
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const x = tempVec.x * cx + cx;
+        const y = -tempVec.y * cy + cy;
+        
+        label.style.left = (x - label.offsetWidth/2) + 'px';
+        label.style.top = (y - label.offsetHeight/2) + 'px';
+    }
+
+    // ---------- 粒子视觉 ----------
+    let particleMeshes = [];
+    let visualRadiusScale = 6.0;
+    const PARTICLE_COLORS = [0xff3333,0x33ff33,0x3399ff,0xffcc00,0xff66cc,0x66ccff,0xff9933,0x99ff99,0xaa66ff,0xff6699];
+
+    function updateParticlesVisuals() {
+        if (!worldPtr) return;
+        const data = worldPtr.getParticlesData();
+        const cnt = data.length / 4;
+        while (particleMeshes.length > cnt) {
+            const m = particleMeshes.pop();
+            scene.remove(m);
+            m.geometry.dispose();
+            m.material.dispose();
+        }
+        for (let i=0; i<cnt; i++) {
+            const px=data[i*4], py=data[i*4+1], pz=data[i*4+2], r=data[i*4+3];
+            const color = PARTICLE_COLORS[i%PARTICLE_COLORS.length];
+            if (i < particleMeshes.length) {
+                const m=particleMeshes[i];
+                m.position.set(px,py,pz);
+                m.scale.set(r*visualRadiusScale,r*visualRadiusScale,r*visualRadiusScale);
+            } else {
+                const geo=new THREE.SphereGeometry(1,32,32);
+                const mat=new THREE.MeshBasicMaterial({color});
+                const sphere=new THREE.Mesh(geo,mat);
+                sphere.position.set(px,py,pz);
+                sphere.scale.set(r*visualRadiusScale,r*visualRadiusScale,r*visualRadiusScale);
+                scene.add(sphere);
+                particleMeshes.push(sphere);
+            }
+        }
+    }
+
+    // ---------- 物理世界 ----------
+    let moduleInstance=null, worldPtr=null, running=false;
 
     function createEmptyWorld() {
-        const world = new moduleInstance.World();
-        world.setGravity(new moduleInstance.Vec3(0, -9.8, 0));
-        world.addPlane(new moduleInstance.Vec3(0, 1, 0), 0.0);
+        const world=new moduleInstance.World();
+        world.setGravity(new moduleInstance.Vec3(0,0,-9.8));
+        world.addPlane(new moduleInstance.Vec3(0,0,1), 0.0);
         return world;
     }
-
     function resetWorld() {
         if (worldPtr) worldPtr.delete();
-        worldPtr = createEmptyWorld();
-        log("✅ 世界已重置（所有粒子已清除）");
-        drawScene();
+        worldPtr=createEmptyWorld();
+        updateParticlesVisuals();
+        logMessage("✅ 世界已重置");
     }
+  // ====================== 【仅替换这个函数】地面向上强力对撞示例 ======================
+function addExampleParticles() {
+    if(!worldPtr)return;
+    resetWorld();
+    const e = 0.99; // 超高弹性
+    const m = 1.0;
 
-    function addExampleParticles() {
-        if (!worldPtr) return;
-        const rest = 0.5;
-        worldPtr.addParticleFull(0, 400, 0, 0, 0, 0, 1.0, 1, rest);
-        worldPtr.addParticleFull(-350, 400, 0, 50, 0, 0, 4.0, 1, rest);
-        worldPtr.addParticleFull(348, 200, 0, 0, 0, 0, 6.0, 1, 1.0);
-        log("✨ 添加了三个示例粒子（弹性系数=0.5）");
-        drawScene();
-    }
+    // 四个球全部从地面（Z=0.5）向上高速对撞 → 你要的感觉！
+    // 红球：左下 → 右上
+    worldPtr.addParticleFull(-3,  -3,  0.5,    2.2,  2.2,  8.0,   m, 0.35, e);
+    // 绿球：右下 → 左上
+    worldPtr.addParticleFull(3,   -3,  0.5,   -2.2,  2.2,  8.0,   m, 0.35, e);
+    // 蓝球：左上 → 右下
+    worldPtr.addParticleFull(-3,  3,   0.5,    2.2, -2.2,  8.0,   m, 0.35, e);
+    // 黄球：右上 → 左下
+    worldPtr.addParticleFull(3,   3,   0.5,   -2.2, -2.2,  8.0,   m, 0.35, e);
 
+    logMessage("🔥 已加载：地面向上对撞示例！点击【开始】");
+    updateParticlesVisuals();
+}
     function addParticleFromUI() {
-        if (!worldPtr) { log("世界未初始化"); return; }
-        const px = parseFloat(document.getElementById('posX').value);
-        const py = parseFloat(document.getElementById('posY').value);
-        const pz = parseFloat(document.getElementById('posZ').value);
-        const vx = parseFloat(document.getElementById('velX').value);
-        const vy = parseFloat(document.getElementById('velY').value);
-        const vz = parseFloat(document.getElementById('velZ').value);
-        const mass = parseFloat(document.getElementById('mass').value);
-        const radius = parseFloat(document.getElementById('radius').value);
-        const restitution = parseFloat(document.getElementById('restitution').value);
-        if (isNaN(px+py+pz+vx+vy+vz+mass+radius+restitution) || mass<=0 || radius<=0) {
-            log("❌ 参数无效"); return;
+        if(!worldPtr){logMessage("❌ 世界未初始化");return;}
+        const px=parseFloat(document.getElementById('posX').value);
+        const py=parseFloat(document.getElementById('posY').value);
+        const pz=parseFloat(document.getElementById('posZ').value);
+        const vx=parseFloat(document.getElementById('velX').value);
+        const vy=parseFloat(document.getElementById('velY').value);
+        const vz=parseFloat(document.getElementById('velZ').value);
+        const mass=parseFloat(document.getElementById('mass').value);
+        const radius=parseFloat(document.getElementById('radius').value);
+        const rest=parseFloat(document.getElementById('restitution').value);
+        if(isNaN(px+py+pz+vx+vy+vz+mass+radius+rest)||mass<=0||radius<=0){
+            logMessage("❌ 参数无效");return;
         }
-        worldPtr.addParticleFull(px, py, pz, vx, vy, vz, mass, radius, restitution);
-        log(`➕ 添加粒子: pos(${px},${py},${pz}) vel(${vx},${vy},${vz}) e=${restitution}`);
-        drawScene();
+        worldPtr.addParticleFull(px,py,pz,vx,vy,vz,mass,radius,rest);
+        logMessage(`➕ 粒子 (${px.toFixed(1)},${py.toFixed(1)},${pz.toFixed(1)})`);
+        updateParticlesVisuals();
+    }
+    function physicsStep(dt=0.02){if(worldPtr)worldPtr.step(dt);updateParticlesVisuals();}
+    function exportData(){
+        if(!worldPtr)return;
+        const csv=worldPtr.exportData();
+        const blob=new Blob([csv],{type:"text/csv"});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=`physicode_${Date.now()}.csv`;
+        a.click();URL.revokeObjectURL(a.href);
+        logMessage("📄 导出CSV完成");
+    }
+    function resetCamera(){
+        camera.position.set(initialCameraPos.x,initialCameraPos.y,initialCameraPos.z);
+        controls.target.set(0,0,0);
+        controls.update();
+        logMessage("🎥 相机已重置");
     }
 
-    function step(dt=0.02) { if(worldPtr) { worldPtr.step(dt); drawScene(); } }
-    function exportData() {
-        if(!worldPtr) return;
-        const csv = worldPtr.exportData();
-        const blob = new Blob([csv], {type:"text/csv"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `physicode_${Date.now()}.csv`;
-        a.click(); URL.revokeObjectURL(a.href);
-        log("📄 导出 CSV");
+    // ========== 渲染循环（完全同步） ==========
+    function animate(){
+        requestAnimationFrame(animate);
+        controls.update();
+        if(running) physicsStep(0.02);
+        updateStaticLabels();
+        renderer.render(scene, camera);
     }
-    function animate() { if(running) { step(0.02); requestAnimationFrame(animate); } }
+    animate();
 
-    // 绑定事件
-    document.getElementById('stepBtn').onclick = () => step();
-    document.getElementById('startBtn').onclick = () => { if(!running){ running=true; animate(); log("▶️ 开始动画"); } };
-    document.getElementById('stopBtn').onclick = () => { running=false; if(animationId) cancelAnimationFrame(animationId); log("⏸️ 停止"); };
-    document.getElementById('exportBtn').onclick = exportData;
-    document.getElementById('addParticleBtn').onclick = addParticleFromUI;
-    document.getElementById('resetWorldBtn').onclick = resetWorld;
-    document.getElementById('addExamplesBtn').onclick = addExampleParticles;
+    // ---------- WASM 初始化 ----------
+    async function initWasm(){
+        clearLog();
+        logMessage("=== 初始化（无闪烁稳定版）===");
+        if(typeof window.PhysiCodeSolverModule==='undefined'){
+            logMessage("❌ PhysiCodeSolver_WASM.js 未加载",true);
+            return false;
+        }
+        try{
+            moduleInstance=await window.PhysiCodeSolverModule();
+            if(!moduleInstance.World||!moduleInstance.Vec3){
+                logMessage("❌ WASM模块绑定失败",true);
+                return false;
+            }
+            worldPtr=createEmptyWorld();
+            updateParticlesVisuals();
+            setButtonsEnabled(true);
+            logMessage("✅ 初始化完成 · 无闪烁已启用");
+            return true;
+        }catch(e){
+            logMessage(`❌ 初始化失败: ${e.message||e}`,true);
+            console.error(e);
+            return false;
+        }
+    }
+    initWasm();
 
-    const restSlider = document.getElementById('restitution');
-    const restSpan = document.getElementById('restitutionValue');
-    restSlider.oninput = () => { restSpan.textContent = restSlider.value; };
+    // ---------- 事件绑定 ----------
+    document.getElementById('stepBtn').onclick=()=>physicsStep();
+    document.getElementById('startBtn').onclick=()=>{running=true;logMessage("▶️ 开始");};
+    document.getElementById('stopBtn').onclick=()=>{running=false;logMessage("⏸️ 停止");};
+    document.getElementById('exportBtn').onclick=exportData;
+    document.getElementById('resetCameraBtn').onclick=resetCamera;
+    document.getElementById('addParticleBtn').onclick=addParticleFromUI;
+    document.getElementById('resetWorldBtn').onclick=resetWorld;
+    document.getElementById('addExamplesBtn').onclick=addExampleParticles;
 
-    // 初始化
-    (async () => {
-        log("加载 WASM...");
-        const ModuleFactory = window.PhysiCodeSolverModule;
-        moduleInstance = await ModuleFactory();
-        worldPtr = createEmptyWorld();
-        log("初始化完成，重力(0,-9.8,0)，地面 y=0");
-        drawScene();
-    })().catch(e => log("初始化失败: "+e));
+    document.getElementById('restitution').oninput=function(){
+        document.getElementById('restitutionValue').textContent=this.value;
+    };
+    document.getElementById('visualScale').oninput=function(){
+        visualRadiusScale=parseFloat(this.value);
+        document.getElementById('visualScaleValue').textContent=visualRadiusScale.toFixed(1);
+        updateParticlesVisuals();
+    };
+
+    window.addEventListener('resize',()=>{
+        camera.aspect=window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth,window.innerHeight);
+    });
 </script>
 </body>
 </html>
